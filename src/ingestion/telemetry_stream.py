@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -15,16 +14,18 @@ from src.storage.client import get_storage_client
 logger = get_logger("ingestion.telemetry")
 
 
-TELEMETRY_SCHEMA = pa.schema([
-    ("event_id", pa.string()),
-    ("machine_id", pa.string()),
-    ("factory_id", pa.string()),
-    ("timestamp", pa.string()),
-    ("temperature_c", pa.float64()),
-    ("vibration_mm_s", pa.float64()),
-    ("power_kw", pa.float64()),
-    ("status", pa.string()),
-])
+TELEMETRY_SCHEMA = pa.schema(
+    [
+        ("event_id", pa.string()),
+        ("machine_id", pa.string()),
+        ("factory_id", pa.string()),
+        ("timestamp", pa.string()),
+        ("temperature_c", pa.float64()),
+        ("vibration_mm_s", pa.float64()),
+        ("power_kw", pa.float64()),
+        ("status", pa.string()),
+    ]
+)
 
 
 def _events_to_parquet_bytes(events: list[dict]) -> bytes:
@@ -40,11 +41,7 @@ def _events_to_parquet_bytes(events: list[dict]) -> bytes:
 
 
 def _partition_key(year: int, month: int, day: int, hour: int, batch_id: str) -> str:
-    return (
-        f"raw/telemetry/"
-        f"year={year}/month={month:02d}/day={day:02d}/hour={hour:02d}/"
-        f"batch_{batch_id}.parquet"
-    )
+    return f"raw/telemetry/year={year}/month={month:02d}/day={day:02d}/hour={hour:02d}/batch_{batch_id}.parquet"
 
 
 def ingest_telemetry_stream(
@@ -52,6 +49,7 @@ def ingest_telemetry_stream(
     batch_size: int = 50,
 ) -> dict:
     import sys
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from config.settings import SAMPLE_DATA_DIR
 
@@ -97,16 +95,14 @@ def ingest_telemetry_stream(
                 parts = flush(buffer)
                 total_partitions += parts
                 total_batches += 1
-                logger.info("Flushed batch %d: %d events → %d partition(s)",
-                            total_batches, len(buffer), parts)
+                logger.info("Flushed batch %d: %d events → %d partition(s)", total_batches, len(buffer), parts)
                 buffer.clear()
 
     if buffer:
         parts = flush(buffer)
         total_partitions += parts
         total_batches += 1
-        logger.info("Flushed batch %d (final): %d events → %d partition(s)",
-                    total_batches, len(buffer), parts)
+        logger.info("Flushed batch %d (final): %d events → %d partition(s)", total_batches, len(buffer), parts)
         buffer.clear()
 
     stats = {

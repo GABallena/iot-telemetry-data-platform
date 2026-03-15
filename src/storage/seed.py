@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -33,11 +32,7 @@ def _seed_telemetry(s3) -> int:
 
     count = 0
     for (year, month, day, hour), events in sorted(partitions.items()):
-        partition_key = (
-            f"raw/telemetry/"
-            f"year={year}/month={month:02d}/day={day:02d}/hour={hour:02d}/"
-            f"events.jsonl"
-        )
+        partition_key = f"raw/telemetry/year={year}/month={month:02d}/day={day:02d}/hour={hour:02d}/events.jsonl"
         payload = "\n".join(json.dumps(e) for e in events) + "\n"
         s3.put_object(partition_key, payload.encode())
         count += len(events)

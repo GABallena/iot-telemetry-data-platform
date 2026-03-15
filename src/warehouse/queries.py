@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import pyarrow as pa
@@ -34,13 +33,15 @@ def machines_trending_toward_failure(s3: StorageClient) -> list[dict]:
         if max_temp and max_temp > 90:
             reasons.append(f"max_temp={max_temp:.1f}°C")
         if reasons:
-            results.append({
-                "machine_id": health.column("machine_id")[i].as_py(),
-                "avg_temperature_c": round(avg_temp, 1) if avg_temp else None,
-                "avg_vibration_mm_s": round(avg_vib, 2) if avg_vib else None,
-                "max_temperature_c": round(max_temp, 1) if max_temp else None,
-                "risk_factors": reasons,
-            })
+            results.append(
+                {
+                    "machine_id": health.column("machine_id")[i].as_py(),
+                    "avg_temperature_c": round(avg_temp, 1) if avg_temp else None,
+                    "avg_vibration_mm_s": round(avg_vib, 2) if avg_vib else None,
+                    "max_temperature_c": round(max_temp, 1) if max_temp else None,
+                    "risk_factors": reasons,
+                }
+            )
 
     results.sort(key=lambda r: r.get("avg_temperature_c") or 0, reverse=True)
     return results
@@ -56,11 +57,13 @@ def overheating_before_shutdown(s3: StorageClient) -> list[dict]:
         mid = telemetry.column("machine_id")[i].as_py()
         if mid not in machine_events:
             machine_events[mid] = []
-        machine_events[mid].append({
-            "timestamp": telemetry.column("timestamp")[i].as_py(),
-            "temperature_c": telemetry.column("temperature_c")[i].as_py(),
-            "status": telemetry.column("status")[i].as_py(),
-        })
+        machine_events[mid].append(
+            {
+                "timestamp": telemetry.column("timestamp")[i].as_py(),
+                "temperature_c": telemetry.column("temperature_c")[i].as_py(),
+                "status": telemetry.column("status")[i].as_py(),
+            }
+        )
 
     results = []
     for mid, events in machine_events.items():
@@ -68,23 +71,24 @@ def overheating_before_shutdown(s3: StorageClient) -> list[dict]:
         for j in range(len(events) - 1):
             curr = events[j]
             nxt = events[j + 1]
-            if (curr["temperature_c"] and curr["temperature_c"] > 85
-                    and nxt["status"] in ("idle", "off", "error")):
-                results.append({
-                    "machine_id": mid,
-                    "hot_event_temp": round(curr["temperature_c"], 1),
-                    "hot_event_time": (
-                        curr["timestamp"].isoformat()
-                        if hasattr(curr["timestamp"], "isoformat")
-                        else str(curr["timestamp"])
-                    ),
-                    "next_status": nxt["status"],
-                    "next_time": (
-                        nxt["timestamp"].isoformat()
-                        if hasattr(nxt["timestamp"], "isoformat")
-                        else str(nxt["timestamp"])
-                    ),
-                })
+            if curr["temperature_c"] and curr["temperature_c"] > 85 and nxt["status"] in ("idle", "off", "error"):
+                results.append(
+                    {
+                        "machine_id": mid,
+                        "hot_event_temp": round(curr["temperature_c"], 1),
+                        "hot_event_time": (
+                            curr["timestamp"].isoformat()
+                            if hasattr(curr["timestamp"], "isoformat")
+                            else str(curr["timestamp"])
+                        ),
+                        "next_status": nxt["status"],
+                        "next_time": (
+                            nxt["timestamp"].isoformat()
+                            if hasattr(nxt["timestamp"], "isoformat")
+                            else str(nxt["timestamp"])
+                        ),
+                    }
+                )
                 break
 
     return results
@@ -116,12 +120,14 @@ def downtime_by_factory(s3: StorageClient) -> list[dict]:
 
     results = []
     for i in range(len(metrics)):
-        results.append({
-            "factory_id": metrics.column("factory_id")[i].as_py(),
-            "total_downtime_minutes": metrics.column("total_downtime_minutes")[i].as_py(),
-            "avg_downtime_minutes": round(metrics.column("avg_downtime_minutes")[i].as_py(), 1),
-            "downtime_events": metrics.column("downtime_event_count")[i].as_py(),
-        })
+        results.append(
+            {
+                "factory_id": metrics.column("factory_id")[i].as_py(),
+                "total_downtime_minutes": metrics.column("total_downtime_minutes")[i].as_py(),
+                "avg_downtime_minutes": round(metrics.column("avg_downtime_minutes")[i].as_py(), 1),
+                "downtime_events": metrics.column("downtime_event_count")[i].as_py(),
+            }
+        )
 
     results.sort(key=lambda r: r["total_downtime_minutes"], reverse=True)
     return results
@@ -134,12 +140,14 @@ def maintenance_reducing_downtime(s3: StorageClient) -> list[dict]:
 
     results = []
     for i in range(len(metrics)):
-        results.append({
-            "maintenance_type": metrics.column("maintenance_type")[i].as_py(),
-            "avg_downtime_minutes": round(metrics.column("avg_downtime_minutes")[i].as_py(), 1),
-            "total_downtime_minutes": metrics.column("total_downtime_minutes")[i].as_py(),
-            "event_count": metrics.column("event_count")[i].as_py(),
-        })
+        results.append(
+            {
+                "maintenance_type": metrics.column("maintenance_type")[i].as_py(),
+                "avg_downtime_minutes": round(metrics.column("avg_downtime_minutes")[i].as_py(), 1),
+                "total_downtime_minutes": metrics.column("total_downtime_minutes")[i].as_py(),
+                "event_count": metrics.column("event_count")[i].as_py(),
+            }
+        )
 
     results.sort(key=lambda r: r["avg_downtime_minutes"])
     return results
@@ -152,12 +160,14 @@ def machines_high_scrap(s3: StorageClient) -> list[dict]:
 
     results = []
     for i in range(len(scrap)):
-        results.append({
-            "machine_id": scrap.column("machine_id")[i].as_py(),
-            "scrap_rate": round(scrap.column("scrap_rate")[i].as_py(), 4),
-            "total_scrap_units": scrap.column("total_scrap_units")[i].as_py(),
-            "total_units_produced": scrap.column("total_units_produced")[i].as_py(),
-        })
+        results.append(
+            {
+                "machine_id": scrap.column("machine_id")[i].as_py(),
+                "scrap_rate": round(scrap.column("scrap_rate")[i].as_py(), 4),
+                "total_scrap_units": scrap.column("total_scrap_units")[i].as_py(),
+                "total_units_produced": scrap.column("total_units_produced")[i].as_py(),
+            }
+        )
 
     results.sort(key=lambda r: r["scrap_rate"], reverse=True)
     return results
@@ -177,6 +187,7 @@ def lines_abnormal_variability(s3: StorageClient) -> list[dict]:
         machine_units[mid].append(units)
 
     import math
+
     results = []
     for mid, units in machine_units.items():
         if len(units) < 2:
@@ -187,14 +198,16 @@ def lines_abnormal_variability(s3: StorageClient) -> list[dict]:
         variance = sum((x - mean) ** 2 for x in units) / len(units)
         std = math.sqrt(variance)
         cv = std / mean
-        results.append({
-            "machine_id": mid,
-            "mean_units": round(mean, 1),
-            "std_units": round(std, 1),
-            "cv": round(cv, 4),
-            "data_points": len(units),
-            "abnormal": cv > 0.15,
-        })
+        results.append(
+            {
+                "machine_id": mid,
+                "mean_units": round(mean, 1),
+                "std_units": round(std, 1),
+                "cv": round(cv, 4),
+                "data_points": len(units),
+                "abnormal": cv > 0.15,
+            }
+        )
 
     results.sort(key=lambda r: r["cv"], reverse=True)
     return results
@@ -230,10 +243,11 @@ def run_all_queries() -> dict[str, list[dict]]:
 
 if __name__ == "__main__":
     import json
+
     results = run_all_queries()
     for name, rows in results.items():
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"  {name}: {len(rows)} result(s)")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         for row in rows[:5]:
             print(f"  {json.dumps(row, default=str)}")

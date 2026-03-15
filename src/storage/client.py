@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import shutil
@@ -8,7 +7,6 @@ from typing import Union
 
 
 class StorageClient(ABC):
-
     @abstractmethod
     def put_object(self, key: str, data: Union[bytes, str]) -> None: ...
 
@@ -29,7 +27,6 @@ class StorageClient(ABC):
 
 
 class LocalS3Client(StorageClient):
-
     def __init__(self, root: Union[str, Path]) -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
@@ -80,7 +77,6 @@ class LocalS3Client(StorageClient):
 
 
 class MinioS3Client(StorageClient):
-
     def __init__(
         self,
         endpoint_url: str,
@@ -90,6 +86,7 @@ class MinioS3Client(StorageClient):
         secure: bool = False,
     ) -> None:
         import boto3
+
         scheme = "https" if secure else "http"
         self._bucket = bucket
         self._s3 = boto3.client(
@@ -138,6 +135,7 @@ class MinioS3Client(StorageClient):
 
 def get_storage_client() -> StorageClient:
     import sys
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from config.settings import (
         LOCAL_DATA_LAKE_ROOT,

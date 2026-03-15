@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import pyarrow as pa
@@ -121,9 +120,7 @@ def _stage_maintenance_logs(s3: StorageClient) -> int:
 
     dt = table.column("downtime_minutes")
     clamped = pc.max_element_wise(dt, pa.scalar(0, type=pa.int64()))
-    table = table.set_column(
-        table.schema.get_field_index("downtime_minutes"), "downtime_minutes", clamped
-    )
+    table = table.set_column(table.schema.get_field_index("downtime_minutes"), "downtime_minutes", clamped)
 
     _write_staging(s3, "staging/maintenance_logs/maintenance_logs.parquet", table)
     logger.info("maintenance_logs: %d rows → staging/maintenance_logs/maintenance_logs.parquet", len(table))
@@ -145,9 +142,7 @@ def _stage_production(s3: StorageClient) -> int:
     for col in ("units_produced", "scrap_units"):
         arr = table.column(col)
         clamped = pc.max_element_wise(arr, pa.scalar(0, type=pa.int64()))
-        table = table.set_column(
-            table.schema.get_field_index(col), col, clamped
-        )
+        table = table.set_column(table.schema.get_field_index(col), col, clamped)
 
     _write_staging(s3, "staging/production/production.parquet", table)
     logger.info("production: %d rows → staging/production/production.parquet", len(table))

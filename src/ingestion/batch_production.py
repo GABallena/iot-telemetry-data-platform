@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import csv
@@ -30,14 +29,16 @@ def _save_watermark(s3: StorageClient, last_date: str) -> None:
     s3.put_object(WATERMARK_KEY, json.dumps({"last_date": last_date}, indent=2))
 
 
-PRODUCTION_SCHEMA = pa.schema([
-    ("date", pa.string()),
-    ("machine_id", pa.string()),
-    ("shift", pa.string()),
-    ("units_produced", pa.int64()),
-    ("scrap_units", pa.int64()),
-    ("operator_id", pa.string()),
-])
+PRODUCTION_SCHEMA = pa.schema(
+    [
+        ("date", pa.string()),
+        ("machine_id", pa.string()),
+        ("shift", pa.string()),
+        ("units_produced", pa.int64()),
+        ("scrap_units", pa.int64()),
+        ("operator_id", pa.string()),
+    ]
+)
 
 
 def _rows_to_parquet_bytes(rows: list[dict]) -> bytes:
@@ -57,6 +58,7 @@ def _rows_to_parquet_bytes(rows: list[dict]) -> bytes:
 
 def ingest_production(source_path: str | Path | None = None) -> dict:
     import sys
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from config.settings import SAMPLE_DATA_DIR
 

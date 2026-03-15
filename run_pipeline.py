@@ -44,18 +44,20 @@ def _register_steps():
     from src.transformations.staging import run_staging
     from src.warehouse.queries import run_all_queries
 
-    STEPS.update({
-        "ingest": [
-            ("ingestion.telemetry", ingest_telemetry_stream, {}),
-            ("ingestion.maintenance", ingest_maintenance, {}),
-            ("ingestion.production", ingest_production, {}),
-        ],
-        "staging": [("transformations.staging", run_staging, {})],
-        "analytics": [("transformations.analytics", run_analytics, {})],
-        "quality": [("quality.checks", run_quality_checks, {"fail_early": False})],
-        "alerts": [("monitoring.alerts", run_alerts, {})],
-        "queries": [("warehouse.queries", run_all_queries, {})],
-    })
+    STEPS.update(
+        {
+            "ingest": [
+                ("ingestion.telemetry", ingest_telemetry_stream, {}),
+                ("ingestion.maintenance", ingest_maintenance, {}),
+                ("ingestion.production", ingest_production, {}),
+            ],
+            "staging": [("transformations.staging", run_staging, {})],
+            "analytics": [("transformations.analytics", run_analytics, {})],
+            "quality": [("quality.checks", run_quality_checks, {"fail_early": False})],
+            "alerts": [("monitoring.alerts", run_alerts, {})],
+            "queries": [("warehouse.queries", run_all_queries, {})],
+        }
+    )
 
 
 STEP_ORDER = ["ingest", "staging", "analytics", "quality", "alerts", "queries"]

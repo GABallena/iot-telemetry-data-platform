@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -16,7 +15,6 @@ logger = get_logger("quality")
 
 
 class QualityCheckError(Exception):
-
     def __init__(self, result: QualityResult):
         self.result = result
         super().__init__(
@@ -44,14 +42,12 @@ def _read_parquet(s3: StorageClient, key: str) -> pa.Table | None:
 def check_missing_telemetry(s3: StorageClient) -> QualityResult:
     table = _read_parquet(s3, "staging/telemetry/telemetry.parquet")
     if table is None:
-        return QualityResult("missing_telemetry", False, "error",
-                             "No staged telemetry data found", 0, 0)
+        return QualityResult("missing_telemetry", False, "error", "No staged telemetry data found", 0, 0)
 
     event_ids = [r.as_py() for r in table.column("event_id")]
     nums = sorted(int(eid.replace("evt_", "")) for eid in event_ids if eid)
     if len(nums) < 2:
-        return QualityResult("missing_telemetry", True, "info",
-                             "Too few events to check gaps", len(nums), 0)
+        return QualityResult("missing_telemetry", True, "info", "Too few events to check gaps", len(nums), 0)
 
     expected = set(range(nums[0], nums[-1] + 1))
     actual = set(nums)
@@ -60,43 +56,41 @@ def check_missing_telemetry(s3: StorageClient) -> QualityResult:
     if missing:
         sample = missing[:10]
         return QualityResult(
-            "missing_telemetry", False, "warning",
+            "missing_telemetry",
+            False,
+            "warning",
             f"{len(missing)} missing event(s) in sequence. Sample: evt_{sample[0]:06d}..evt_{sample[-1]:06d}",
-            len(expected), len(missing),
+            len(expected),
+            len(missing),
         )
-    return QualityResult("missing_telemetry", True, "info",
-                         "No gaps in telemetry event sequence",
-                         len(actual), 0)
+    return QualityResult("missing_telemetry", True, "info", "No gaps in telemetry event sequence", len(actual), 0)
 
 
 def check_negative_production(s3: StorageClient) -> QualityResult:
     table = _read_parquet(s3, "staging/production/production.parquet")
     if table is None:
-        return QualityResult("negative_production", False, "error",
-                             "No staged production data found", 0, 0)
+        return QualityResult("negative_production", False, "error", "No staged production data found", 0, 0)
 
-    neg_units = pc.sum(pc.less(table.column("units_produced"),
-                               pa.scalar(0, type=pa.int64()))).as_py()
-    neg_scrap = pc.sum(pc.less(table.column("scrap_units"),
-                               pa.scalar(0, type=pa.int64()))).as_py()
+    neg_units = pc.sum(pc.less(table.column("units_produced"), pa.scalar(0, type=pa.int64()))).as_py()
+    neg_scrap = pc.sum(pc.less(table.column("scrap_units"), pa.scalar(0, type=pa.int64()))).as_py()
     total_neg = neg_units + neg_scrap
 
     if total_neg > 0:
         return QualityResult(
-            "negative_production", False, "error",
+            "negative_production",
+            False,
+            "error",
             f"{neg_units} negative units_produced, {neg_scrap} negative scrap_units",
-            len(table), total_neg,
+            len(table),
+            total_neg,
         )
-    return QualityResult("negative_production", True, "info",
-                         "No negative production values",
-                         len(table), 0)
+    return QualityResult("negative_production", True, "info", "No negative production values", len(table), 0)
 
 
 def check_machine_id_mismatches(s3: StorageClient) -> QualityResult:
     machines = _read_parquet(s3, "staging/machines/machines.parquet")
     if machines is None:
-        return QualityResult("machine_id_mismatch", False, "error",
-                             "No staged machines data found", 0, 0)
+        return QualityResult("machine_id_mismatch", False, "error", "No staged machines data found", 0, 0)
 
     valid_ids = set(r.as_py() for r in machines.column("machine_id"))
     mismatches: dict[str, list[str]] = {}
@@ -117,13 +111,13 @@ def check_machine_id_mismatches(s3: StorageClient) -> QualityResult:
     if mismatches:
         details = "; ".join(f"{src}: {ids}" for src, ids in mismatches.items())
         total_bad = sum(len(v) for v in mismatches.values())
-        return QualityResult("machine_id_mismatch", False, "warning",
-                             f"Unknown machine_ids — {details}",
-                             len(valid_ids), total_bad)
+        return QualityResult(
+            "machine_id_mismatch", False, "warning", f"Unknown machine_ids — {details}", len(valid_ids), total_bad
+        )
 
-    return QualityResult("machine_id_mismatch", True, "info",
-                         "All machine_ids match the machines dimension",
-                         len(valid_ids), 0)
+    return QualityResult(
+        "machine_id_mismatch", True, "info", "All machine_ids match the machines dimension", len(valid_ids), 0
+    )
 
 
 def check_null_critical_fields(s3: StorageClient) -> QualityResult:
@@ -148,12 +142,15 @@ def check_null_critical_fields(s3: StorageClient) -> QualityResult:
                 null_details.append(f"{key}:{col}={null_count}")
 
     if total_nulls > 0:
-        return QualityResult("null_critical_fields", False, "error",
-                             f"Nulls found: {', '.join(null_details)}",
-                             total_checked, total_nulls)
-    return QualityResult("null_critical_fields", True, "info",
-                         "No nulls in critical fields",
-                         total_checked, 0)
+        return QualityResult(
+            "null_critical_fields",
+            False,
+            "error",
+            f"Nulls found: {', '.join(null_details)}",
+            total_checked,
+            total_nulls,
+        )
+    return QualityResult("null_critical_fields", True, "info", "No nulls in critical fields", total_checked, 0)
 
 
 ALL_CHECKS = [
@@ -175,13 +172,21 @@ def run_quality_checks(fail_early: bool = True) -> list[QualityResult]:
         if result.passed:
             logger.info("PASS  %s: %s", result.check_name, result.details)
         elif result.severity == "error":
-            logger.error("FAIL  %s: %s  (%d/%d records)",
-                         result.check_name, result.details,
-                         result.records_failed, result.records_checked)
+            logger.error(
+                "FAIL  %s: %s  (%d/%d records)",
+                result.check_name,
+                result.details,
+                result.records_failed,
+                result.records_checked,
+            )
         else:
-            logger.warning("WARN  %s: %s  (%d/%d records)",
-                           result.check_name, result.details,
-                           result.records_failed, result.records_checked)
+            logger.warning(
+                "WARN  %s: %s  (%d/%d records)",
+                result.check_name,
+                result.details,
+                result.records_failed,
+                result.records_checked,
+            )
 
         results.append(result)
 

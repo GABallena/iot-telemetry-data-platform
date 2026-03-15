@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import pyarrow as pa
@@ -108,9 +107,7 @@ def _build_fact_downtime(s3: StorageClient, maint: pa.Table, machines: pa.Table)
 
 
 def _group_by_agg(table: pa.Table, group_col: str, agg_specs: list[tuple[str, str, str]]) -> pa.Table:
-    table = table.group_by(group_col).aggregate(
-        [(src, agg) for src, agg, _ in agg_specs]
-    )
+    table = table.group_by(group_col).aggregate([(src, agg) for src, agg, _ in agg_specs])
     rename_map = {}
     for src, agg, out_name in agg_specs:
         auto_name = f"{src}_{agg}"
@@ -120,20 +117,27 @@ def _group_by_agg(table: pa.Table, group_col: str, agg_specs: list[tuple[str, st
 
 
 def _build_machine_health_features(s3: StorageClient, telemetry: pa.Table) -> None:
-    features = telemetry.group_by("machine_id").aggregate([
-        ("temperature_c", "mean"),
-        ("temperature_c", "max"),
-        ("vibration_mm_s", "mean"),
-        ("vibration_mm_s", "max"),
-        ("power_kw", "mean"),
-        ("event_id", "count"),
-    ])
-    features = features.rename_columns([
-        "machine_id",
-        "avg_temperature_c", "max_temperature_c",
-        "avg_vibration_mm_s", "max_vibration_mm_s",
-        "avg_power_kw", "event_count",
-    ])
+    features = telemetry.group_by("machine_id").aggregate(
+        [
+            ("temperature_c", "mean"),
+            ("temperature_c", "max"),
+            ("vibration_mm_s", "mean"),
+            ("vibration_mm_s", "max"),
+            ("power_kw", "mean"),
+            ("event_id", "count"),
+        ]
+    )
+    features = features.rename_columns(
+        [
+            "machine_id",
+            "avg_temperature_c",
+            "max_temperature_c",
+            "avg_vibration_mm_s",
+            "max_vibration_mm_s",
+            "avg_power_kw",
+            "event_count",
+        ]
+    )
     _write_analytics(s3, "analytics/machine_health_features.parquet", features)
 
 
@@ -142,17 +146,23 @@ def _build_factory_downtime_metrics(s3: StorageClient, downtime_fact: pa.Table) 
         logger.warning("No downtime data for factory metrics")
         return
 
-    metrics = downtime_fact.group_by("factory_id").aggregate([
-        ("downtime_minutes", "sum"),
-        ("downtime_minutes", "mean"),
-        ("downtime_minutes", "count"),
-        ("downtime_minutes", "max"),
-    ])
-    metrics = metrics.rename_columns([
-        "factory_id",
-        "total_downtime_minutes", "avg_downtime_minutes",
-        "downtime_event_count", "max_single_downtime_minutes",
-    ])
+    metrics = downtime_fact.group_by("factory_id").aggregate(
+        [
+            ("downtime_minutes", "sum"),
+            ("downtime_minutes", "mean"),
+            ("downtime_minutes", "count"),
+            ("downtime_minutes", "max"),
+        ]
+    )
+    metrics = metrics.rename_columns(
+        [
+            "factory_id",
+            "total_downtime_minutes",
+            "avg_downtime_minutes",
+            "downtime_event_count",
+            "max_single_downtime_minutes",
+        ]
+    )
     _write_analytics(s3, "analytics/factory_downtime_metrics.parquet", metrics)
 
 
@@ -169,13 +179,19 @@ def _build_scrap_rate_metrics(s3: StorageClient, production: pa.Table, machines:
 
     enriched = production.append_column("factory_id", pa.array(factory_ids, type=pa.string()))
 
-    metrics = enriched.group_by("machine_id").aggregate([
-        ("units_produced", "sum"),
-        ("scrap_units", "sum"),
-    ])
-    metrics = metrics.rename_columns([
-        "machine_id", "total_units_produced", "total_scrap_units",
-    ])
+    metrics = enriched.group_by("machine_id").aggregate(
+        [
+            ("units_produced", "sum"),
+            ("scrap_units", "sum"),
+        ]
+    )
+    metrics = metrics.rename_columns(
+        [
+            "machine_id",
+            "total_units_produced",
+            "total_scrap_units",
+        ]
+    )
     total_units = pc.cast(metrics.column("total_units_produced"), pa.float64())
     total_scrap = pc.cast(metrics.column("total_scrap_units"), pa.float64())
     safe_units = pc.max_element_wise(total_units, pa.scalar(1.0))
@@ -186,15 +202,21 @@ def _build_scrap_rate_metrics(s3: StorageClient, production: pa.Table, machines:
 
 
 def _build_maintenance_effectiveness(s3: StorageClient, maint: pa.Table) -> None:
-    metrics = maint.group_by("maintenance_type").aggregate([
-        ("downtime_minutes", "mean"),
-        ("downtime_minutes", "sum"),
-        ("downtime_minutes", "count"),
-    ])
-    metrics = metrics.rename_columns([
-        "maintenance_type",
-        "avg_downtime_minutes", "total_downtime_minutes", "event_count",
-    ])
+    metrics = maint.group_by("maintenance_type").aggregate(
+        [
+            ("downtime_minutes", "mean"),
+            ("downtime_minutes", "sum"),
+            ("downtime_minutes", "count"),
+        ]
+    )
+    metrics = metrics.rename_columns(
+        [
+            "maintenance_type",
+            "avg_downtime_minutes",
+            "total_downtime_minutes",
+            "event_count",
+        ]
+    )
     _write_analytics(s3, "analytics/maintenance_effectiveness_metrics.parquet", metrics)
 
 

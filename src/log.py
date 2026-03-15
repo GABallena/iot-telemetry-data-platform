@@ -1,4 +1,3 @@
-
 import logging
 import logging.handlers
 import os
@@ -23,19 +22,25 @@ def _configure_root() -> None:
 
     console = logging.StreamHandler()
     console.setLevel(_LOG_LEVEL)
-    console.setFormatter(logging.Formatter(
-        "%(asctime)s  %(levelname)-7s  %(name)s  %(message)s",
-        datefmt="%H:%M:%S",
-    ))
+    console.setFormatter(
+        logging.Formatter(
+            "%(asctime)s  %(levelname)-7s  %(name)s  %(message)s",
+            datefmt="%H:%M:%S",
+        )
+    )
     root.addHandler(console)
 
     file_handler = logging.handlers.RotatingFileHandler(
-        _LOG_FILE, maxBytes=5_000_000, backupCount=3,
+        _LOG_FILE,
+        maxBytes=5_000_000,
+        backupCount=3,
     )
     file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s  %(levelname)-7s  %(name)s  %(message)s",
-    ))
+    file_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s  %(levelname)-7s  %(name)s  %(message)s",
+        )
+    )
     root.addHandler(file_handler)
 
 

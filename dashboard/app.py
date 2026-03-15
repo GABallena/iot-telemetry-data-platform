@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -88,14 +87,17 @@ def get_telemetry_status() -> list[dict]:
             last = latest[mid]
             if last.tzinfo is None:
                 from datetime import timezone
+
                 last = last.replace(tzinfo=timezone.utc)
             hours_since = (now - last).total_seconds() / 3600
-            results.append({
-                "machine_id": mid,
-                "last_event": last.isoformat(),
-                "hours_since": round(hours_since, 1),
-                "status": "silent" if hours_since > 1 else "active",
-            })
+            results.append(
+                {
+                    "machine_id": mid,
+                    "last_event": last.isoformat(),
+                    "hours_since": round(hours_since, 1),
+                    "status": "silent" if hours_since > 1 else "active",
+                }
+            )
         else:
             results.append({"machine_id": mid, "last_event": None, "status": "no_data"})
 
@@ -127,10 +129,10 @@ def _render_index() -> str:
         rows = []
         for d in downtime:
             rows.append(f"""<tr>
-                <td>{d.get('factory_id','')}</td>
-                <td>{d.get('total_downtime_minutes',0):,}</td>
-                <td>{d.get('avg_downtime_minutes',0):.1f}</td>
-                <td>{d.get('downtime_event_count',0)}</td>
+                <td>{d.get("factory_id", "")}</td>
+                <td>{d.get("total_downtime_minutes", 0):,}</td>
+                <td>{d.get("avg_downtime_minutes", 0):.1f}</td>
+                <td>{d.get("downtime_event_count", 0)}</td>
             </tr>""")
         return "\n".join(rows)
 
@@ -140,11 +142,11 @@ def _render_index() -> str:
             max_t = h.get("max_temperature_c") or 0
             cls = "danger" if max_t > 90 else "warn"
             rows.append(f"""<tr>
-                <td>{h.get('machine_id','')}</td>
+                <td>{h.get("machine_id", "")}</td>
                 <td class="{cls}">{max_t:.1f}°C</td>
-                <td>{h.get('avg_temperature_c',0):.1f}°C</td>
-                <td>{h.get('max_vibration_mm_s',0):.2f}</td>
-                <td>{h.get('event_count',0)}</td>
+                <td>{h.get("avg_temperature_c", 0):.1f}°C</td>
+                <td>{h.get("max_vibration_mm_s", 0):.2f}</td>
+                <td>{h.get("event_count", 0)}</td>
             </tr>""")
         return "\n".join(rows)
 
@@ -152,10 +154,10 @@ def _render_index() -> str:
         rows = []
         for s in high_scrap[:10]:
             rows.append(f"""<tr>
-                <td>{s.get('machine_id','')}</td>
-                <td class="warn">{(s.get('scrap_rate',0))*100:.1f}%</td>
-                <td>{s.get('total_scrap_units',0):,}</td>
-                <td>{s.get('total_units_produced',0):,}</td>
+                <td>{s.get("machine_id", "")}</td>
+                <td class="warn">{(s.get("scrap_rate", 0)) * 100:.1f}%</td>
+                <td>{s.get("total_scrap_units", 0):,}</td>
+                <td>{s.get("total_units_produced", 0):,}</td>
             </tr>""")
         return "\n".join(rows)
 
@@ -163,10 +165,10 @@ def _render_index() -> str:
         rows = []
         for t in silent_machines[:10]:
             rows.append(f"""<tr>
-                <td>{t.get('machine_id','')}</td>
-                <td class="warn">{t.get('status','')}</td>
-                <td>{t.get('last_event','never')}</td>
-                <td>{t.get('hours_since','—')}</td>
+                <td>{t.get("machine_id", "")}</td>
+                <td class="warn">{t.get("status", "")}</td>
+                <td>{t.get("last_event", "never")}</td>
+                <td>{t.get("hours_since", "—")}</td>
             </tr>""")
         return "\n".join(rows)
 
@@ -177,8 +179,8 @@ def _render_index() -> str:
             cls = "danger" if sev == "critical" else "warn" if sev == "warning" else ""
             rows.append(f"""<tr>
                 <td class="{cls}">{sev.upper()}</td>
-                <td>{a.get('alert_type','')}</td>
-                <td>{a.get('message','')}</td>
+                <td>{a.get("alert_type", "")}</td>
+                <td>{a.get("message", "")}</td>
             </tr>""")
         return "\n".join(rows)
 
@@ -215,10 +217,10 @@ def _render_index() -> str:
 <div class="summary">
   <div class="stat"><div class="value">{len(downtime)}</div><div class="label">Factories</div></div>
   <div class="stat"><div class="value">{len(health)}</div><div class="label">Machines</div></div>
-  <div class="stat"><div class="value {'danger' if len(abnormal_machines) > 5 else 'warn' if abnormal_machines else 'ok'}">{len(abnormal_machines)}</div><div class="label">Abnormal</div></div>
-  <div class="stat"><div class="value {'warn' if silent_machines else 'ok'}">{len(silent_machines)}</div><div class="label">Silent</div></div>
-  <div class="stat"><div class="value {'warn' if high_scrap else 'ok'}">{len(high_scrap)}</div><div class="label">High Scrap</div></div>
-  <div class="stat"><div class="value {'danger' if alerts.get('critical',0) else 'warn' if alerts.get('warnings',0) else 'ok'}">{alerts.get('total_alerts',0)}</div><div class="label">Alerts</div></div>
+  <div class="stat"><div class="value {"danger" if len(abnormal_machines) > 5 else "warn" if abnormal_machines else "ok"}">{len(abnormal_machines)}</div><div class="label">Abnormal</div></div>
+  <div class="stat"><div class="value {"warn" if silent_machines else "ok"}">{len(silent_machines)}</div><div class="label">Silent</div></div>
+  <div class="stat"><div class="value {"warn" if high_scrap else "ok"}">{len(high_scrap)}</div><div class="label">High Scrap</div></div>
+  <div class="stat"><div class="value {"danger" if alerts.get("critical", 0) else "warn" if alerts.get("warnings", 0) else "ok"}">{alerts.get("total_alerts", 0)}</div><div class="label">Alerts</div></div>
 </div>
 
 <div class="grid">
@@ -264,7 +266,7 @@ def _render_index() -> str:
 <tr><th>Severity</th><th>Type</th><th>Message</th></tr>
 {_alert_rows()}
 </table>
-{f'<p style="margin-top:0.5rem;color:#8b949e">{len(alert_list)} alert(s) — {alerts.get("critical",0)} critical, {alerts.get("warnings",0)} warning(s)</p>' if alert_list else '<p class="ok" style="margin-top:0.5rem">No active alerts</p>'}
+{f'<p style="margin-top:0.5rem;color:#8b949e">{len(alert_list)} alert(s) — {alerts.get("critical", 0)} critical, {alerts.get("warnings", 0)} warning(s)</p>' if alert_list else '<p class="ok" style="margin-top:0.5rem">No active alerts</p>'}
 </div>
 
 </div>

@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import csv
@@ -50,22 +49,26 @@ def _rows_to_parquet_bytes(rows: list[dict], schema: pa.Schema) -> bytes:
     return sink.getvalue().to_pybytes()
 
 
-MACHINES_SCHEMA = pa.schema([
-    ("machine_id", pa.string()),
-    ("factory_id", pa.string()),
-    ("machine_type", pa.string()),
-    ("install_date", pa.string()),
-    ("status", pa.string()),
-])
+MACHINES_SCHEMA = pa.schema(
+    [
+        ("machine_id", pa.string()),
+        ("factory_id", pa.string()),
+        ("machine_type", pa.string()),
+        ("install_date", pa.string()),
+        ("status", pa.string()),
+    ]
+)
 
-MAINTENANCE_LOGS_SCHEMA = pa.schema([
-    ("maintenance_id", pa.string()),
-    ("machine_id", pa.string()),
-    ("timestamp", pa.string()),
-    ("maintenance_type", pa.string()),
-    ("part_replaced", pa.string()),
-    ("downtime_minutes", pa.int64()),
-])
+MAINTENANCE_LOGS_SCHEMA = pa.schema(
+    [
+        ("maintenance_id", pa.string()),
+        ("machine_id", pa.string()),
+        ("timestamp", pa.string()),
+        ("maintenance_type", pa.string()),
+        ("part_replaced", pa.string()),
+        ("downtime_minutes", pa.int64()),
+    ]
+)
 
 
 def _ingest_machines(s3: StorageClient, source_dir: Path, batch_ts: str) -> int:
@@ -104,6 +107,7 @@ def _ingest_maintenance_logs(
     new_watermark = max(r["timestamp"] for r in new_rows)
 
     from collections import defaultdict
+
     partitions: dict[str, list[dict]] = defaultdict(list)
     for row in new_rows:
         ts = datetime.fromisoformat(row["timestamp"])
@@ -121,6 +125,7 @@ def _ingest_maintenance_logs(
 
 def ingest_maintenance(source_dir: str | Path | None = None) -> dict:
     import sys
+
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from config.settings import SAMPLE_DATA_DIR
 

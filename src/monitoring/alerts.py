@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -44,9 +43,7 @@ def _check_telemetry_silence(s3: StorageClient) -> list[Alert]:
         return alerts
 
     now = datetime.now(UTC)
-    all_machine_ids = set(
-        machines.column("machine_id")[i].as_py() for i in range(len(machines))
-    )
+    all_machine_ids = set(machines.column("machine_id")[i].as_py() for i in range(len(machines)))
 
     latest_by_machine: dict[str, datetime] = {}
     for i in range(len(telemetry)):
@@ -63,22 +60,27 @@ def _check_telemetry_silence(s3: StorageClient) -> list[Alert]:
             last = latest_by_machine[mid]
             if last.tzinfo is None:
                 from datetime import timezone
+
                 last = last.replace(tzinfo=timezone.utc)
             hours_since = (now - last).total_seconds() / 3600
             if hours_since > TELEMETRY_SILENCE_HOURS:
-                silent_machines.append({
-                    "machine_id": mid,
-                    "last_event": last.isoformat(),
-                    "hours_since": round(hours_since, 1),
-                })
+                silent_machines.append(
+                    {
+                        "machine_id": mid,
+                        "last_event": last.isoformat(),
+                        "hours_since": round(hours_since, 1),
+                    }
+                )
 
     if silent_machines:
-        alerts.append(Alert(
-            alert_type="telemetry_silence",
-            severity="warning",
-            message=f"{len(silent_machines)} machine(s) have not sent telemetry in {TELEMETRY_SILENCE_HOURS}h",
-            details={"machines": silent_machines},
-        ))
+        alerts.append(
+            Alert(
+                alert_type="telemetry_silence",
+                severity="warning",
+                message=f"{len(silent_machines)} machine(s) have not sent telemetry in {TELEMETRY_SILENCE_HOURS}h",
+                details={"machines": silent_machines},
+            )
+        )
 
     return alerts
 
@@ -93,20 +95,24 @@ def _check_temperature_threshold(s3: StorageClient) -> list[Alert]:
     for i in range(len(health)):
         max_temp = health.column("max_temperature_c")[i].as_py()
         if max_temp is not None and max_temp > TEMP_THRESHOLD_C:
-            overheating.append({
-                "machine_id": health.column("machine_id")[i].as_py(),
-                "max_temperature_c": round(max_temp, 1),
-                "avg_temperature_c": round(health.column("avg_temperature_c")[i].as_py(), 1),
-            })
+            overheating.append(
+                {
+                    "machine_id": health.column("machine_id")[i].as_py(),
+                    "max_temperature_c": round(max_temp, 1),
+                    "avg_temperature_c": round(health.column("avg_temperature_c")[i].as_py(), 1),
+                }
+            )
 
     if overheating:
         severity = "critical" if any(m["max_temperature_c"] > 95 for m in overheating) else "warning"
-        alerts.append(Alert(
-            alert_type="temperature_exceedance",
-            severity=severity,
-            message=f"{len(overheating)} machine(s) exceeded {TEMP_THRESHOLD_C}°C temperature threshold",
-            details={"machines": overheating},
-        ))
+        alerts.append(
+            Alert(
+                alert_type="temperature_exceedance",
+                severity=severity,
+                message=f"{len(overheating)} machine(s) exceeded {TEMP_THRESHOLD_C}°C temperature threshold",
+                details={"machines": overheating},
+            )
+        )
 
     return alerts
 
@@ -121,20 +127,24 @@ def _check_scrap_rate_spike(s3: StorageClient) -> list[Alert]:
     for i in range(len(scrap)):
         rate = scrap.column("scrap_rate")[i].as_py()
         if rate is not None and rate > SCRAP_RATE_THRESHOLD:
-            high_scrap.append({
-                "machine_id": scrap.column("machine_id")[i].as_py(),
-                "scrap_rate": round(rate, 4),
-                "total_units": scrap.column("total_units_produced")[i].as_py(),
-                "total_scrap": scrap.column("total_scrap_units")[i].as_py(),
-            })
+            high_scrap.append(
+                {
+                    "machine_id": scrap.column("machine_id")[i].as_py(),
+                    "scrap_rate": round(rate, 4),
+                    "total_units": scrap.column("total_units_produced")[i].as_py(),
+                    "total_scrap": scrap.column("total_scrap_units")[i].as_py(),
+                }
+            )
 
     if high_scrap:
-        alerts.append(Alert(
-            alert_type="scrap_rate_spike",
-            severity="warning",
-            message=f"{len(high_scrap)} machine(s) exceed {SCRAP_RATE_THRESHOLD*100:.0f}% scrap rate threshold",
-            details={"machines": high_scrap},
-        ))
+        alerts.append(
+            Alert(
+                alert_type="scrap_rate_spike",
+                severity="warning",
+                message=f"{len(high_scrap)} machine(s) exceed {SCRAP_RATE_THRESHOLD * 100:.0f}% scrap rate threshold",
+                details={"machines": high_scrap},
+            )
+        )
 
     return alerts
 
@@ -150,31 +160,41 @@ def _check_late_data(s3: StorageClient) -> list[Alert]:
             last_ts = datetime.fromisoformat(last_ts_str)
             if last_ts.tzinfo is None:
                 from datetime import timezone
+
                 last_ts = last_ts.replace(tzinfo=timezone.utc)
             hours_old = (now - last_ts).total_seconds() / 3600
             if hours_old > LATE_DATA_HOURS:
-                alerts.append(Alert(
-                    alert_type="late_data",
-                    severity="warning",
-                    message=f"Maintenance data is {hours_old:.1f}h old (threshold: {LATE_DATA_HOURS}h)",
-                    details={"source": "maintenance", "last_watermark": last_ts_str, "hours_old": round(hours_old, 1)},
-                ))
+                alerts.append(
+                    Alert(
+                        alert_type="late_data",
+                        severity="warning",
+                        message=f"Maintenance data is {hours_old:.1f}h old (threshold: {LATE_DATA_HOURS}h)",
+                        details={
+                            "source": "maintenance",
+                            "last_watermark": last_ts_str,
+                            "hours_old": round(hours_old, 1),
+                        },
+                    )
+                )
 
     if s3.exists("metadata/watermarks/production.json"):
         wm = json.loads(s3.get_object("metadata/watermarks/production.json").decode())
         last_date_str = wm.get("last_date", "")
         if last_date_str:
             from datetime import date as _date
+
             last_date = _date.fromisoformat(last_date_str)
             today = now.date()
             days_old = (today - last_date).days
             if days_old > 0:
-                alerts.append(Alert(
-                    alert_type="late_data",
-                    severity="info" if days_old <= 1 else "warning",
-                    message=f"Production data is {days_old} day(s) behind",
-                    details={"source": "production", "last_date": last_date_str, "days_old": days_old},
-                ))
+                alerts.append(
+                    Alert(
+                        alert_type="late_data",
+                        severity="info" if days_old <= 1 else "warning",
+                        message=f"Production data is {days_old} day(s) behind",
+                        details={"source": "production", "last_date": last_date_str, "days_old": days_old},
+                    )
+                )
 
     return alerts
 
@@ -186,12 +206,14 @@ def _check_pipeline_failures(s3: StorageClient) -> list[Alert]:
     failures = get_failed_runs(since_hours=24)
 
     if failures:
-        alerts.append(Alert(
-            alert_type="pipeline_failure",
-            severity="critical",
-            message=f"{len(failures)} pipeline step(s) failed in the last 24h",
-            details={"failures": failures},
-        ))
+        alerts.append(
+            Alert(
+                alert_type="pipeline_failure",
+                severity="critical",
+                message=f"{len(failures)} pipeline step(s) failed in the last 24h",
+                details={"failures": failures},
+            )
+        )
 
     return alerts
 
