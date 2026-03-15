@@ -1,0 +1,11 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# These files need sys.path manipulation before imports
+"dashboard/app.py" = ["E402", "E501"]
+"src/storage/seed.py" = ["E402"]
